@@ -6,16 +6,15 @@ from timeintegration import TimeIntegration
 if __name__ == '__main__':
 
     # MATERIAL DATA
-    E = 1.0e12
-    rho = 1.0e4
-    nu = 0.0
+    E = 200.0e9
+    rho = 7800.0
 
     # GRID DATA
     dx = 1.0
     L = 25.0
 
     # PARTICLE DATA
-    ppe = 1
+    ppe = 2
     v0 = .1
     n = 1
     beta = (2*n-1)*pi/2./L
@@ -26,7 +25,7 @@ if __name__ == '__main__':
     # TIME DATA
     t0 = 0
     tf = 5*T
-    pct = 0.5
+    pct = 0.1
 
     # MODEL CREATION
     domain = Domain()
@@ -35,7 +34,7 @@ if __name__ == '__main__':
     domain.grid.lockNodeAtCoord(0)
     domain.grid.lockNodeAtCoord(-dx)
 
-    material = Material(E, rho, nu)
+    material = Material(E, rho)
 
     domain.genParticles(material, ppe, 0, L)
     for p in domain.particles: p.vel = v0*sin(beta*p.coord)
@@ -70,8 +69,9 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
 
-    plt.plot(t, analytical, linewidth=10)
-    plt.plot(t, vCM, 'o-')
+    plt.plot(t, analytical, linewidth=10, label='Analytical')
+    plt.plot(t, vCM, 'o-', label='GIMPy')
+    plt.legend()
     plt.show()
 
     print('FINISHED')

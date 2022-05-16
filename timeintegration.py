@@ -1,4 +1,4 @@
-from numpy import sqrt, max
+from numpy import array, max, sqrt
 
 class TimeIntegration:
     def __init__(self, domain, tf, t0=0.0, t=0.0, dt=0, pct=0.1):
@@ -51,8 +51,7 @@ class TimeIntegration:
 
     def computeDt(self):
         
-        materials = self.domain.materials
-        c = max([sqrt(mat.E/mat.rho) for mat in materials])
+        c = max([sqrt(mat.E/mat.rho) for mat in self.domain.materials])
 
         dtc = self.domain.grid.L/c
 
@@ -126,6 +125,6 @@ class TimeIntegration:
 
             p.strain += dE
 
-            p.stress += p.mat.E/(1+p.mat.nu)*(1-p.mat.nu)/(1-2*p.mat.nu)*dE
+            p.stress += p.mat.E*dE
 
         self.t += self.dt

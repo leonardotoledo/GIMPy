@@ -1,8 +1,7 @@
 class Material:
-    def __init__(self, E, rho, nu):
+    def __init__(self, E, rho):
         self.__E = E
         self.__rho = rho
-        self.__nu = nu
 
     def __repr__(self):
         return str(self.__dict__)
@@ -17,7 +16,3 @@ class Material:
     @property
     def rho(self):
         return self.__rho
-
-    @property
-    def nu(self):
-        return self.__nu
