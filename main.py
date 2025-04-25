@@ -62,15 +62,6 @@ if __name__ == '__main__':
     time.initializeParticles()
 
     for i in range(num_steps):
-
-        if i == 2:
-            quit()
-
-        print('----------------------------------------')
-        print(f'Time: {time.t}')
-        print(f'Time increment: {time.dt}')
-        print('----------------------------------------')
-
         t[i] = time.t
         vCM[i] = sum([p.vel * p.mass for p in time.domain.particles]) / M
 
