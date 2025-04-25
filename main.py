@@ -76,10 +76,10 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
 
-    plt.plot(t, analytical, '-', label='Analytical', linewidth=2)
-    plt.plot(t, vCM, 'o-', label='GIMPy', linewidth=2)
+    plt.plot(t, analytical, '-', label='Analytical', linewidth=3)
+    plt.plot(t, vCM, '--', label='GIMPy', linewidth=3)
     plt.legend()
-    plt.savefig(f'{THIS}_velocity.pdf')
+    plt.show()
 
     # Assert that the analytical solution is correct
     import numpy as np
