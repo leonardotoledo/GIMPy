@@ -50,81 +50,217 @@ class TimeIntegration:
         self.__dt = Dt
 
     def computeDt(self):
-        
-        c = max([sqrt(mat.E/mat.rho) for mat in self.domain.materials])
 
-        dtc = self.domain.grid.L/c
+        c = max([sqrt(mat.E / mat.rho) for mat in self.domain.materials])
 
-        self.dt = self.pct*dtc
+        dtc = self.domain.grid.L / c
 
-    def advance(self):
+        self.dt = self.pct * dtc
 
-        # 1. Particle-To-Grid Mapping (P2G)
-        self.domain.grid.reset()
+    def initializeParticles(self):
+        for p in self.domain.particles:
+            p.element = self.domain.grid.mapParticle2Element(p)
 
+    def usf(self):
         b = self.domain.b
         dx = self.domain.grid.L
 
-        for p in self.domain.particles:
-            e = self.domain.grid.mapParticle2Element(p)
+        # 0. Reset nodal values
+        for n in self.domain.grid.nodes:
+            n.mass = 0
+            n.momentum = 0
+            n.force = 0
 
+        # 1. Particle-To-Grid Mapping (P2G)
+        for p in self.domain.particles:
             x = p.coord
             lp = p.lp
 
-            for n in e.nodes:
+            for n in p.element.nodes:
                 if not n.is_locked:
                     N = n.N(x, lp, dx)
-                    dN = n.dN(x, lp, dx)
-
                     n.mass += p.mass * N
                     n.momentum += (p.mass * p.vel) * N
 
-                    # External force
-                    n.force += p.mass * b * N
-
-                    # Internal force
-                    n.force -= p.stress * p.vol * dN
-
-        # 2. Update of nodal momentum
-        for n in self.domain.grid.nodes:
-            n.momentum += self.dt*n.force
-
-        # 3. Grid-To-Particle (G2P)
+        # 2. Grid-To-Particle (G2P)
         for p in self.domain.particles:
-            e = self.domain.grid.mapParticle2Element(p)
-
-            x = p.coord
-            lp = p.lp
-
-            for n in e.nodes:
-                if not n.is_locked and n.mass > 0:
-                    N = n.N(x, lp, dx)
-
-                    p.vel += self.dt * n.force/n.mass * N
-                    p.coord += self.dt * n.momentum/n.mass * N
-
-        # 4. Computation of particles stresses
-        for p in self.domain.particles:
-            e = self.domain.grid.mapParticle2Element(p)
-
             x = p.coord
             lp = p.lp
 
             Lp = 0
-            for n in e.nodes:
+            for n in p.element.nodes:
                 if not n.is_locked and n.mass > 0:
                     dN = n.dN(x, lp, dx)
-                    
-                    Lp += n.momentum/n.mass*dN
+                    Lp += dN * n.momentum / n.mass
 
-            p.def_gradient *= 1 + self.dt*Lp
-
-            p.vol = p.def_gradient*p.init_vol
-
-            dE = self.dt*Lp
-
+            p.def_gradient *= (1 + Lp * self.dt)
+            p.vol = p.def_gradient * p.init_vol
+            dE = self.dt * Lp
             p.strain += dE
+            p.stress += p.mat.E * dE
 
-            p.stress += p.mat.E*dE
+            for n in p.element.nodes:
+                if not n.is_locked and n.mass > 0:
+                    dN = n.dN(x, lp, dx)
+                    n.force -= dN * p.vol * p.stress
+
+        # 3. Update nodal momentum
+        for n in self.domain.grid.nodes:
+            if not n.is_locked and n.mass > 0:
+                n.momentum += self.dt * n.force
+
+        # 4. Update particle kinematics
+        for p in self.domain.particles:
+            x = p.coord
+            lp = p.lp
+
+            for n in p.element.nodes:
+                if not n.is_locked and n.mass > 0:
+                    N = n.N(x, lp, dx)
+                    p.vel += self.dt * N * n.force / n.mass
+                    p.coord += self.dt * N * n.momentum / n.mass
+
+            p.element = self.domain.grid.mapParticle2Element(p)
+
+        self.t += self.dt
+
+    def usl(self):
+        b = self.domain.b
+        dx = self.domain.grid.L
+
+        # 0. Reset nodal values
+        for n in self.domain.grid.nodes:
+            n.mass = 0
+            n.momentum = 0
+            n.force = 0
+
+        # 1. Particle-To-Grid Mapping (P2G)
+
+        count = 0
+        for p in self.domain.particles:
+            x = p.coord
+            lp = p.lp
+
+            for n in p.element.nodes:
+                N = n.N(x, lp, dx)
+                dN = n.dN(x, lp, dx)
+                nodalMassInc = p.mass * N
+                nodalMomentumInc = (p.mass * p.vel) * N
+                nodalForceInc = -dN * p.vol * p.stress
+
+                # if n.id == 5 and p.id == 7:
+                #     print(f'Node ID: {n.id}')
+
+                n.mass += nodalMassInc
+                n.momentum += nodalMomentumInc
+                n.force += nodalForceInc
+
+        # 2. Update nodal momentum
+        for n in self.domain.grid.nodes:
+            if n.mass > 0:
+                n.momentum += self.dt * n.force
+            if n.is_locked:
+                n.mass = 0
+                n.momentum = 0
+                n.force = 0
+
+        # 3. Grid-To-Particle (G2P)
+        for p in self.domain.particles:
+            x = p.coord
+            lp = p.lp
+
+            p.vel_gradient = 0
+            count = 0
+            for n in p.element.nodes:
+                if not n.is_locked and n.mass > 0:
+                    N = n.N(x, lp, dx)
+                    dN = n.dN(x, lp, dx)
+                    p.vel_gradient += dN * n.momentum / n.mass
+                    p.vel += self.dt * N * n.force / n.mass
+                    p.coord += self.dt * N * n.momentum / n.mass
+                    count += 1
+
+            p.def_gradient *= (1 + p.vel_gradient * self.dt)
+            p.vol = p.def_gradient * p.init_vol
+            dE = self.dt * p.vel_gradient
+            p.strain += dE
+            p.stress += p.mat.E * dE
+
+            p.element = self.domain.grid.mapParticle2Element(p)
+
+        self.t += self.dt
+
+    def musl(self):
+        b = self.domain.b
+        dx = self.domain.grid.L
+
+        # 0. Reset nodal values
+        for n in self.domain.grid.nodes:
+            n.mass = 0
+            n.momentum = 0
+            n.force = 0
+
+        # 1. Particle-To-Grid Mapping (P2G)
+        for p in self.domain.particles:
+            x = p.coord
+            lp = p.lp
+
+            for n in p.element.nodes:
+                if not n.is_locked:
+                    N = n.N(x, lp, dx)
+                    dN = n.dN(x, lp, dx)
+                    n.mass += p.mass * N
+                    n.momentum += (p.mass * p.vel) * N
+                    n.force -= dN * p.vol * p.stress
+
+        # 2. Update nodal momentum
+        for n in self.domain.grid.nodes:
+            if not n.is_locked and n.mass > 0:
+                n.momentum += self.dt * n.force
+
+        # 3. Grid-To-Particle (Update particle kinematics)
+        for p in self.domain.particles:
+            x = p.coord
+            lp = p.lp
+
+            for n in p.element.nodes:
+                if not n.is_locked and n.mass > 0:
+                    N = n.N(x, lp, dx)
+                    p.vel += self.dt * N * n.force / n.mass
+                    p.coord += self.dt * N * n.momentum / n.mass
+
+            p.element = self.domain.grid.mapParticle2Element(p)
+
+        # 4. Recalculate nodal momentum
+        for n in self.domain.grid.nodes:
+            n.mass = 0
+            n.momentum = 0
+
+        for p in self.domain.particles:
+            x = p.coord
+            lp = p.lp
+
+            for n in p.element.nodes:
+                if not n.is_locked:
+                    N = n.N(x, lp, dx)
+                    n.mass += p.mass * N
+                    n.momentum += (p.mass * p.vel) * N
+
+        # 5. Grid-To-Particle (Update particle stress)
+        for p in self.domain.particles:
+            x = p.coord
+            lp = p.lp
+
+            Lp = 0
+            for n in p.element.nodes:
+                if not n.is_locked and n.mass > 0:
+                    dN = n.dN(x, lp, dx)
+                    Lp += dN * n.momentum / n.mass
+
+            p.def_gradient *= (1 + Lp * self.dt)
+            p.vol = p.def_gradient * p.init_vol
+            dE = self.dt * Lp
+            p.strain += dE
+            p.stress += p.mat.E * dE
 
         self.t += self.dt

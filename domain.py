@@ -58,22 +58,11 @@ class Domain:
     def genGrid(self, dx, xmin, xmax):
 
         num_elem = (int) ( ceil(xmax-xmin)/dx )
-        num_nodes = num_elem + 1
+        num_nodes = num_elem + 3
 
-        nodes = array([Node(xmin+i*dx) for i in range(num_nodes)], dtype=Node)
+        nodes = array([Node(i+1, xmin+i*dx) for i in range(num_nodes)], dtype=Node)
 
-        elements = array([Element([nodes[i], nodes[i+1]]) for i in range(num_elem)], dtype=Element)
-
-        for i in range(num_elem):
-
-            v1 = i-1
-            v2 = i+1
-
-            if v1 >= 0:
-                elements[i].left_neighbor = elements[v1]
-
-            if v2 < num_elem:
-                elements[i].right_neighbor = elements[v2]
+        elements = array([Element([nodes[i], nodes[i+1], nodes[i+2], nodes[i+3]]) for i in range(num_elem)], dtype=Element)
 
         self.grid = Grid(nodes, elements, dx, xmin, xmax)
 
@@ -87,4 +76,4 @@ class Domain:
 
         mass = dxp*material.rho
 
-        self.particles = array([Particle(xmin+(i+0.5)*dxp, mass, material, 0.5*dxp) for i in range(num_particles)], dtype=Particle)
+        self.particles = array([Particle(i+1, xmin+(i+0.5)*dxp, mass, material, 0.5*dxp) for i in range(num_particles)], dtype=Particle)

@@ -46,7 +46,7 @@ class Grid:
                     return
 
     def mapParticle2Element(self, particle):
-        id = (int) ( ceil((particle.coord - self.xmin)/self.L) )
+        id = (int) ( ceil((particle.coord - self.xmin)/self.L) ) - 1
 
         if id < 1 or id > len(self.elements):
             raise ValueError('A particle has gone outside the grid domain limits.')

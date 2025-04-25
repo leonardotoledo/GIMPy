@@ -1,5 +1,6 @@
 class Particle:
-    def __init__(self, coord, mass, mat, lp, vel=0.0, stress=0.0, strain=0.0, def_gradient=1.0):
+    def __init__(self, id, coord, mass, mat, lp, vel=0.0, stress=0.0, strain=0.0, def_gradient=1.0):
+        self.__id = id
         self.__coord = coord
         self.__mass = mass
         self.__mat = mat
@@ -9,13 +10,19 @@ class Particle:
         self.__vel = vel
         self.__stress = stress
         self.__strain = strain
+        self.__vel_gradient = 0.0
         self.__def_gradient = def_gradient
+        self.__element = None
 
     def __repr__(self):
         return str(self.__dict__)
 
     def __str__(self):
         return 'Particle class'
+
+    @property
+    def id(self):
+        return self.__id
 
     @property
     def coord(self):
@@ -54,8 +61,20 @@ class Particle:
         return self.__strain
 
     @property
+    def vel_gradient(self):
+        return self.__vel_gradient
+
+    @property
     def def_gradient(self):
         return self.__def_gradient
+
+    @property
+    def element(self):
+        return self.__element
+
+    @id.setter
+    def id(self, Id):
+        self.__id = Id
 
     @coord.setter
     def coord(self, Coord):
@@ -93,6 +112,14 @@ class Particle:
     def strain(self, Strain):
         self.__strain = Strain
 
+    @vel_gradient.setter
+    def vel_gradient(self, VGrad):
+        self.__vel_gradient = VGrad
+
     @def_gradient.setter
     def def_gradient(self, F):
         self.__def_gradient = F
+
+    @element.setter
+    def element(self, Elem):
+        self.__element = Elem

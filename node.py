@@ -1,5 +1,6 @@
 class Node:
-    def __init__(self, coord, mass=0.0, force=0.0, momentum=0.0, is_locked=False):
+    def __init__(self, id, coord, mass=0.0, force=0.0, momentum=0.0, is_locked=False):
+        self.__id = id
         self.__coord = coord
         self.__mass = mass
         self.__force = force
@@ -11,6 +12,10 @@ class Node:
 
     def __str__(self):
         return 'Node class'
+
+    @property
+    def id(self):
+        return self.__id
 
     @property
     def coord(self):
@@ -31,6 +36,10 @@ class Node:
     @property
     def is_locked(self):
         return self.__is_locked
+
+    @id.setter
+    def id(self, Id):
+        self.__id = Id
 
     @coord.setter
     def coord(self, Coord):
